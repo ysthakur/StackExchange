@@ -1,3 +1,5 @@
+import Stack._
+
 @main def stackExchange(program: String, inputs: String*): Unit =
   //todo add flags to read from input, read from a file, etc.
   val initStack = inputs.foldLeft(SNil: Stack)((stack, input) => parseStackLiteral(input) -: stack)
@@ -10,7 +12,12 @@
         e
       )
 
-val commands: Map[String, Stack => Stack] = Map(
+
+type Command = Stack => Stack
+
+val noop = (stack: Stack) => stack
+
+val commands: Map[String, Command] = Map(
   "s" -> { case a -: b -: s => b -: a -: s },                            //swap a and b
   "S" -> { case a -: b -: s => b -: a -: s },                            //swap a and c
   "d" -> topToBottom,                                                    //send top stack to bottom of stack
@@ -20,10 +27,9 @@ val commands: Map[String, Stack => Stack] = Map(
   "e" -> (SNil -: _),                                                    //push an empty stack
   "r" -> reverse,                                                        //reverse the stack
   "E" -> (_ -: SNil),                                                    //enclose entire stack in a stack
-  " " -> Predef.identity,                                                 //no-op
-  ")" -> Predef.identity,
-  "(" -> Predef.identity
+  " " -> noop                                                            //no-op
 )
+
 
 def parseStackLiteral(s: String): Stack =
   def helper(startInd: Int): (Stack, Int) =
@@ -48,32 +54,47 @@ def parseStackLiteral(s: String): Stack =
   
 
 def execCommands(prog: String, initStack: Stack): Stack =
-  def helper(mainStack: Stack, index: Int): (Stack, Int) =
-    println(s"In helper, ind=$index, mainStack=$mainStack")
-    if index == prog.size then (mainStack, index)
-    prog.charAt(index) match
-      case '[' =>
-        var currInd = index + 1
-        var stack = mainStack
-        while prog.charAt(currInd) != ']' do
-          val (nextStack, nextInd) = helper(stack, currInd)
-          stack = nextStack
-          currInd = nextInd
-          if currInd == prog.size then throw new Error("No closing ']' for loop")
-        (stack, currInd + 1)
-      case '(' =>
-        var currInd = index + 1
-        var top -: rest = mainStack
-        while prog.charAt(currInd) != ')' do
-          val (nextStack, nextInd) = helper(top, currInd)
-          top = nextStack
-          currInd = nextInd
-          if currInd == prog.size then throw new Error("No closing ')'")
-        (top -: rest, currInd + 1)
-      case ')' | ']' => (mainStack, index)
-      case c =>
-        println(s"Character $c, after transformation=${commands(c.toString)(mainStack)}")
-        helper(commands(c.toString)(mainStack), index + 1)
-  val (res, ind) = helper(initStack, 0)
+  def helper(prevCmd: Command, index: Int): (Command, Int) =
+    println(s"In helper, ind=$index")
+    if index == prog.size then
+      (prevCmd, index)
+    else
+      prog.charAt(index) match
+        case '[' =>
+          var currInd = index + 1
+          var cmd = noop
+          while prog.charAt(currInd) != ']' do
+            val (nextCmd, nextInd) = helper(cmd, currInd)
+            cmd = nextCmd
+            currInd = nextInd
+            if currInd == prog.size then throw new Error("No closing ']' for loop")
+          
+          @annotation.tailrec
+          def actualCmd(stack: Stack): Stack =
+            stack match
+              case SNil | SNil -: _ => stack
+              case _ => actualCmd(cmd(stack))
+
+          (prevCmd.andThen(actualCmd), currInd + 1)
+
+        case '(' =>
+          var currInd = index + 1
+          var cmd = noop
+          while prog.charAt(currInd) != ')' do
+            val (nextCmd, nextInd) = helper(cmd, currInd)
+            cmd = nextCmd
+            currInd = nextInd
+            if currInd == prog.size then throw new Error("No closing ')'")
+          
+          val actualCmd: Command =
+            case top -: rest => cmd(top) -: rest
+          (prevCmd.andThen(actualCmd), currInd + 1)
+
+        case ')' | ']' => (prevCmd, index)
+        case c =>
+          println(s"Character $c}")
+          helper(prevCmd.andThen(commands(c.toString)), index + 1)
+
+  val (progCmd, ind) = helper(noop, 0)
   if ind != prog.size then throw new Error(s"Extra characters in program at index $ind")
-  res
+  progCmd(initStack)

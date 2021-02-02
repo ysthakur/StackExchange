@@ -1,10 +1,13 @@
 import annotation.tailrec
 
-sealed trait Stack:
+enum Stack:
+  case -:(head: Stack, tail: Stack)
+  case SNil
+
   def -:(head: Stack) = new -:(head, this)
   
-  // @tailrec
   final override def toString: String =
+    @tailrec
     def helper(acc: StringBuilder, next: Stack): String =
       next match
         case head -: tail => helper(acc.append(head.toString), tail)
@@ -12,9 +15,7 @@ sealed trait Stack:
     
     helper(StringBuilder("{"), this)
 
-case class -:(head: Stack, tail: Stack) extends Stack
-object SNil extends Stack
-
+import Stack._
 
 def reverse(stack: Stack): Stack =
   @tailrec
@@ -25,9 +26,10 @@ def reverse(stack: Stack): Stack =
 
   helper(SNil, stack)
 
+
 val topToBottom: Stack => Stack =
   case top -: rest => reverse(top -: reverse(rest))
 
-def bottomToTop(stack: Stack): Stack =
-  reverse(stack) match
-    case bottom -: rest => bottom -: reverse(rest)
+
+def bottomToTop(stack: Stack): Stack = reverse(stack) match
+  case bottom -: rest => bottom -: reverse(rest)
