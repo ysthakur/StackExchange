@@ -12,25 +12,6 @@ import Stack._
         e
       )
 
-
-type Command = Stack => Stack
-
-val noop = (stack: Stack) => stack
-
-val commands: Map[String, Command] = Map(
-  "s" -> { case a -: b -: s => b -: a -: s },                            //swap a and b
-  "S" -> { case a -: b -: s => b -: a -: s },                            //swap a and c
-  "d" -> topToBottom,                                                    //send top stack to bottom of stack
-  "u" -> bottomToTop,                                                    //send bottom stack to top of stack
-  "d" -> { case a -: b -: c -: s => c -: b -: a -: s },                  //duplicate a
-  "D" -> { case _ -: stack => stack },                                   //discard the top element
-  "e" -> (SNil -: _),                                                    //push an empty stack
-  "r" -> reverse,                                                        //reverse the stack
-  "E" -> (_ -: SNil),                                                    //enclose entire stack in a stack
-  " " -> noop                                                            //no-op
-)
-
-
 def parseStackLiteral(s: String): Stack =
   def helper(startInd: Int): (Stack, Int) =
     if s.charAt(startInd) != '{' then throw new Error("Invalid stack literal")
@@ -76,7 +57,6 @@ def execCommands(prog: String, initStack: Stack): Stack =
               case _ => actualCmd(cmd(stack))
 
           (prevCmd.andThen(actualCmd), currInd + 1)
-
         case '(' =>
           var currInd = index + 1
           var cmd = noop
@@ -89,11 +69,10 @@ def execCommands(prog: String, initStack: Stack): Stack =
           val actualCmd: Command =
             case top -: rest => cmd(top) -: rest
           (prevCmd.andThen(actualCmd), currInd + 1)
-
         case ')' | ']' => (prevCmd, index)
         case c =>
           println(s"Character $c}")
-          helper(prevCmd.andThen(commands(c.toString)), index + 1)
+          helper(prevCmd.andThen(command(c)), index + 1)
 
   val (progCmd, ind) = helper(noop, 0)
   if ind != prog.size then throw new Error(s"Extra characters in program at index $ind")
