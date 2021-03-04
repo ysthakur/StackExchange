@@ -12,5 +12,6 @@ lazy val root = project
       "-rewrite",
       "-indent"
     ),
-    libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
+    // libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.5" % "test"
   )
