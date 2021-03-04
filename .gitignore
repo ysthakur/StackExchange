@@ -1,6 +1,6 @@
+.bloop
 .bsp
+.metals
 .vscode
 null
 target
-.dotty-ide-artifact
-.dotty-ide.json
