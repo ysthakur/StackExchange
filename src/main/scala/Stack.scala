@@ -17,6 +17,9 @@ enum Stack:
 
 import Stack._
 
+def concat(stack1: Stack, stack2: Stack) =
+  foldRight(stack2)(_ -: _)(stack1)
+
 def reverse(stack: Stack): Stack =
   @tailrec
   def helper(acc: Stack, curr: Stack): Stack =
@@ -26,7 +29,7 @@ def reverse(stack: Stack): Stack =
 
   helper(SNil, stack)
 
-def fold[T](init: T)(f: (T, Stack) => T)(stack: Stack): T =
+def foldLeft(init: Stack)(f: (Stack, Stack) => Stack)(stack: Stack): Stack =
   var acc = init
   var s = stack
 
@@ -48,11 +51,12 @@ def swapWithTop(ind: Int)(stack: Stack): Stack =
   def helper(top: Stack, below: Stack, rest: Stack, ind: Int): Stack =
     rest match
       case head -: tail =>
-        if ind == 0 then head -: fold(tail)((s, e) => e -: s)(below)
+        if ind == 0 then head -: foldLeft(tail)((s, e) => e -: s)(below)
         else helper(top, head -: below, tail, ind - 1)
 
   stack match
     case h -: t => helper(h, SNil, t, ind)
+
 
 val topToBottom: Stack => Stack =
   case top -: rest => reverse(top -: reverse(rest))
@@ -60,3 +64,7 @@ val topToBottom: Stack => Stack =
 
 def bottomToTop(stack: Stack): Stack = reverse(stack) match
   case bottom -: rest => bottom -: reverse(rest)
+
+
+def foldRight(init: Stack)(f: (Stack, Stack) => Stack)(stack: Stack): Stack =
+  foldLeft(init)((acc, s) => f(s, acc))(reverse(stack))
