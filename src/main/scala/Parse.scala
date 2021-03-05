@@ -8,18 +8,22 @@ import annotation.tailrec
  */
 def parseStackLiteral(s: String): Stack =
   def helper(startInd: Int): (Stack, Int) =
-    val startChar = s.charAt(startInd)
-    if startChar == ' ' then return helper(startInd + 1)
-    if startChar != '{' then throw new Error("Invalid stack literal")
+    if s.charAt(startInd) != '{' then
+      throw new Error(s"Invalid stack literal, found '${s.charAt(startInd)}', expected '{'")
+
     var stack: Stack = SNil
     println(s"startInd=$startInd, stack=$stack")
     var currInd = startInd + 1
     while s.charAt(currInd) != '}' do
-      val (nextElem, nextInd) = helper(currInd)
-      stack -:= nextElem
-      currInd = nextInd
-      println(s"ind=$currInd, stack=$stack")
-      if currInd == s.size then throw new Error("No closing brace for stack literal")
+      //Skip spaces within stack literals
+      if s.charAt(currInd) == ' ' then
+        currInd += 1
+      else
+        val (nextElem, nextInd) = helper(currInd)
+        stack -:= nextElem
+        currInd = nextInd
+        println(s"ind=$currInd, stack=$stack")
+        if currInd == s.size then throw new Error("No closing brace for stack literal")
     
     (stack, currInd + 1)
   
