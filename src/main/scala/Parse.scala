@@ -8,7 +8,9 @@ import annotation.tailrec
  */
 def parseStackLiteral(s: String): Stack =
   def helper(startInd: Int): (Stack, Int) =
-    if s.charAt(startInd) != '{' then throw new Error("Invalid stack literal")
+    val startChar = s.charAt(startInd)
+    if startChar == ' ' then return helper(startInd + 1)
+    if startChar != '{' then throw new Error("Invalid stack literal")
     var stack: Stack = SNil
     println(s"startInd=$startInd, stack=$stack")
     var currInd = startInd + 1

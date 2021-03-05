@@ -5,6 +5,16 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 class ExecTests extends AnyFlatSpec:
 
+  val `programs, inputs, and expected outputs` = List(
+    ("e", Seq(), "{}"),
+    ("(r(r))", Seq("{{{}{{}}}{}}"), "{ {{}{{{}}{}}} }")
+  )
+
+  for (prog, inputs, expected) <- `programs, inputs, and expected outputs` do
+    s"Output of $prog with inputs ${inputs.mkString(",")}" should s"be $expected" in {
+      assertResult(parseStackLiteral(expected))(executeProgram(prog, inputs: _*))
+    }
+
   def executeProgram(program: String, inputs: String*): Stack =
     val initStack = inputs.foldLeft(SNil: Stack)((stack, input) => parseStackLiteral(input) -: stack)
     val progCmd = programToCommand(program)
