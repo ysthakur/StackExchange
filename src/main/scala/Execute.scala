@@ -2,6 +2,18 @@ import Stack._
 
 import annotation.tailrec
 
+def executeProg(program: String, inputs: Seq[String]): Unit =
+  //todo add flags to read from input, read from a file, etc.
+  val initStack = inputs.foldLeft(SNil: Stack)((stack, input) => parseStackLiteral(input) -: stack)
+  val progCmd = programToCommand(program)
+  try
+    progCmd(initStack)
+  catch
+    case e: StackOverflowError => throw new Error(
+        "Congratulations! You have demonstrated your mastery in Stack Exchange by causing a stack overflow!",
+        e
+      )
+
 /**
  * Parse a stack literal in the form of curly braces containing other stack literals,
  * separated by nothing, e.g. {{}{{{}}{}}}
@@ -12,7 +24,6 @@ def parseStackLiteral(s: String): Stack =
       throw new Error(s"Invalid stack literal, found '${s.charAt(startInd)}', expected '{'")
 
     var stack: Stack = SNil
-    println(s"startInd=$startInd, stack=$stack")
     var currInd = startInd + 1
     while s.charAt(currInd) != '}' do
       //Skip spaces within stack literals
@@ -22,13 +33,11 @@ def parseStackLiteral(s: String): Stack =
         val (nextElem, nextInd) = helper(currInd)
         stack -:= nextElem
         currInd = nextInd
-        println(s"ind=$currInd, stack=$stack")
         if currInd == s.size then throw new Error("No closing brace for stack literal")
     
     (stack, currInd + 1)
   
   val (stack, ind) = helper(0)
-  println(s"endStack=$stack, ind=$ind, s=$s")
   if ind != s.size then throw new Error(s"Extra characters in input $s at index $ind")
   
   stack
@@ -43,7 +52,7 @@ def programToCommand(prog: String): Command =
       (prevCmd, index)
     else
       prog.charAt(index) match
-        case '[' =>
+        case '[' =>   //It's a while loop
           var currInd = index + 1
           var cmd = noop
           while prog.charAt(currInd) != ']' do
@@ -59,7 +68,7 @@ def programToCommand(prog: String): Command =
               case _ => actualCmd(cmd(stack))
 
           (prevCmd.andThen(actualCmd), currInd + 1)
-        case '(' =>
+        case '(' =>    //Treat the top stack as the main stack
           var currInd = index + 1
           var cmd = noop
           while prog.charAt(currInd) != ')' do
@@ -70,6 +79,7 @@ def programToCommand(prog: String): Command =
           
           val actualCmd: Command =
             case top -: rest => cmd(top) -: rest
+          
           (prevCmd.andThen(actualCmd), currInd + 1)
         case ')' | ']' => println("got here!!");(prevCmd, index)
         case c =>
