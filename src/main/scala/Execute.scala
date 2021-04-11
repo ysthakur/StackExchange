@@ -10,9 +10,13 @@ def executeProg(program: String, inputs: Seq[String]): Unit =
     progCmd(initStack)
   catch
     case e: StackOverflowError => throw new Error(
-        "Congratulations! You have demonstrated your mastery in Stack Exchange by causing a stack overflow!",
-        e
-      )
+      "Congratulations! You have demonstrated your mastery in Stack Exchange by causing a stack overflow!",
+      e
+    )
+    case e: MatchError => throw new Error(
+      "Stack has invalid shape",
+      e
+    )
 
 /**
  * Parse a stack literal in the form of curly braces containing other stack literals,
@@ -54,18 +58,18 @@ def programToCommand(prog: String): Command =
       prog.charAt(index) match
         case '[' =>   //It's a while loop
           var currInd = index + 1
-          var cmd = noop
+          var loopCmd = noop
           while prog.charAt(currInd) != ']' do
-            val (nextCmd, nextInd) = helper(cmd, currInd)
-            cmd = nextCmd
+            val (nextCmd, nextInd) = helper(loopCmd, currInd)
+            loopCmd = nextCmd
             currInd = nextInd
-            if currInd == prog.size then throw new Error("No closing ']' for loop")
+            if currInd == prog.size then throw Error("No closing ']' for loop")
           
           @tailrec
           def actualCmd(stack: Stack): Stack =
             stack match
               case SNil | SNil -: _ => stack
-              case _ => actualCmd(cmd(stack))
+              case _ => actualCmd(loopCmd(stack))
 
           (prevCmd.andThen(actualCmd), currInd + 1)
         case '(' =>    //Treat the top stack as the main stack
@@ -75,17 +79,38 @@ def programToCommand(prog: String): Command =
             val (nextCmd, nextInd) = helper(cmd, currInd)
             cmd = nextCmd
             currInd = nextInd
-            if currInd == prog.size then throw new Error("No closing ')'")
+            if currInd == prog.size then throw Error("No closing ')'")
           
-          val actualCmd: Command =
+          val actualCmd: PartialCommand =
             case top -: rest => cmd(top) -: rest
           
-          (prevCmd.andThen(actualCmd), currInd + 1)
-        case ')' | ']' => println("got here!!");(prevCmd, index)
+          (prevCmd.andThen(completePartialCmd(actualCmd, "Run on top stack")), currInd + 1)
+        case '{' =>   //It's a try-catch block
+          var currInd = index + 1
+          var tryCmd = noop
+          while prog.charAt(currInd) != '|' do
+            val (nextCmd, nextInd) = helper(tryCmd, currInd)
+            tryCmd = nextCmd
+            currInd = nextInd
+            if currInd == prog.size then throw Error("No  '|' for try-catch block")
+          
+          var catchCmd = noop
+          while prog.charAt(currInd) != '}' do
+            val (nextCmd, nextInd) = helper(catchCmd, currInd)
+            catchCmd = nextCmd
+            currInd = nextInd
+            if currInd == prog.size then throw Error("No closing '}' for try-catch block")
+          
+          val actualCmd: Command = stack =>
+            try tryCmd(stack)
+            catch case _ => catchCmd(stack)
+
+          (actualCmd, currInd + 1)
+        case ')' | ']' | '}' | '|' => (prevCmd, index)
         case c =>
-          println(s"Character $c}")
+          // println(s"Character $c}")
           helper(prevCmd.andThen(command(c)), index + 1)
   
   val (progCmd, ind) = helper(noop, 0)
-  if ind != prog.size then throw new Error(s"Extra characters in program at index $ind")
+  if ind != prog.size then println(s"Warning: Extra characters in program at index $ind")
   progCmd

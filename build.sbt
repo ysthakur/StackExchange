@@ -10,7 +10,8 @@ lazy val root = project
     scalaVersion := scala3Version,
     scalacOptions ++= Seq(
       "-rewrite",
-      "-indent"
+      "-indent",
+      "-Yindent-colons"
     ),
     // libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.5" % "test"
